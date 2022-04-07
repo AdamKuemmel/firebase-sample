@@ -6,9 +6,20 @@ import { useSession } from "next-auth/react";
 import { EmojiHappyIcon } from "@heroicons/react/outline";
 import { CameraIcon, VideoCameraIcon } from "@heroicons/react/solid";
 //firebase imports
-import { firestore, storage } from "../firebase";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { ref, uploadBytes } from "firebase/storage";
+import { firestore } from "../firebase";
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  setDoc,
+  doc,
+} from "firebase/firestore";
+import {
+  ref,
+  uploadBytesResumable,
+  getDownloadURL,
+  getStorage,
+} from "firebase/storage";
 
 export default function InputBox() {
   const { data, status } = useSession();
@@ -17,27 +28,44 @@ export default function InputBox() {
   const filePickerRef = useRef(null);
   const [imageToPost, setImageToPost] = useState(null);
 
-  const sendPost = async (e) => {
-    let post = {
+  const sendPost = (e) => {
+    e.preventDefault();
+    if (!inputRef.current.value) return;
+    // Add a new document with a generated id.
+    addDoc(collection(firestore, "posts"), {
       message: inputRef.current.value,
       name: data.user.name,
       email: data.user.email,
       image: data.user.image,
       timestamp: serverTimestamp(),
-    };
-    //prevent refresh
-    e.preventDefault();
-    try {
-      addDoc(collectionRef, post).then((doc) => {
-        const imageRef = ref(storage, `posts/${doc.id}`);
-        uploadBytes(imageRef, imageToPost);
-      });
-
-      console.log("Document written with ID: ", doc.id);
-    } catch (e) {
-      console.error("Error adding document: ", e);
-    }
-    //clear value after input
+    }).then((docum) => {
+      if (imageToPost) {
+        const storage = getStorage();
+        const storageRef = ref(storage, `posts/${docum.id}`);
+        const uploadTask = uploadBytesResumable(
+          storageRef,
+          imageToPost,
+          "data_url"
+        );
+        removeImage();
+        uploadTask.on(
+          "state_changed",
+          null,
+          (error) => {
+            console.log(error);
+          },
+          () => {
+            getDownloadURL(uploadTask.snapshot.ref).then((URL) => {
+              setDoc(
+                doc(firestore, "posts", docum.id),
+                { postImage: URL },
+                { merge: true }
+              );
+            });
+          }
+        );
+      }
+    });
     inputRef.current.value = "";
   };
   const addImageToPost = (e) => {
