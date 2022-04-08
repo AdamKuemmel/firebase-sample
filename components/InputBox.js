@@ -19,6 +19,7 @@ import {
   uploadBytesResumable,
   getDownloadURL,
   getStorage,
+  uploadString,
 } from "firebase/storage";
 
 export default function InputBox() {
@@ -40,30 +41,8 @@ export default function InputBox() {
       timestamp: serverTimestamp(),
     }).then((docum) => {
       if (imageToPost) {
-        const storage = getStorage();
-        const storageRef = ref(storage, `posts/${docum.id}`);
-        const uploadTask = uploadBytesResumable(
-          storageRef,
-          imageToPost,
-          "data_url"
-        );
+        attachPic(imageToPost, docum);
         removeImage();
-        uploadTask.on(
-          "state_changed",
-          null,
-          (error) => {
-            console.log(error);
-          },
-          () => {
-            getDownloadURL(uploadTask.snapshot.ref).then((URL) => {
-              setDoc(
-                doc(firestore, "posts", docum.id),
-                { postImage: URL },
-                { merge: true }
-              );
-            });
-          }
-        );
       }
     });
     inputRef.current.value = "";
@@ -76,6 +55,18 @@ export default function InputBox() {
     reader.onload = (readerEvent) => {
       setImageToPost(readerEvent.target.result);
     };
+  };
+
+  const attachPic = async (imageToPost, docum) => {
+    const storage = getStorage();
+    const storageRef = ref(storage, `posts/${docum.id}`);
+    const uploadTask = await uploadString(storageRef, imageToPost, "data_url");
+    const url = await getDownloadURL(uploadTask.ref);
+    await setDoc(
+      doc(firestore, "posts", docum.id),
+      { postImage: url },
+      { merge: true }
+    );
   };
   const removeImage = () => {
     setImageToPost(null);
