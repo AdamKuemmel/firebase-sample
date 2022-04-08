@@ -61,7 +61,9 @@ export default function Header() {
           height="40"
           layout="fixed"
         />
-        <p className="px-3 font-semibold whitespace-nowrap">{data.user.name}</p>
+        <p className="hidden px-3 font-semibold whitespace-nowrap xl:inline-flex">
+          {data.user.name}
+        </p>
         <ViewGridIcon className="icon" />
         <ChatIcon className="icon" />
         <BellIcon className="icon" />
