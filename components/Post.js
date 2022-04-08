@@ -51,7 +51,7 @@ function Post({ name, message, email, timestamp, image, postImage }) {
           <>
             <form className="flex flex-1">
               <input
-                className="flex-grow h-12 px-5 bg-gray-100  focus:outline-none"
+                className="flex-grow h-12 px-5 bg-gray-100 focus:outline-none"
                 type="text"
                 ref={inputRef}
                 placeholder={`Enter Comment ${name}`}
